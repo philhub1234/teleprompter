@@ -541,9 +541,73 @@
       padding-right: 20px;
     }
   }
+  /* ── PIN OVERLAY ── */
+  #pinOverlay {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    gap: 24px;
+  }
+  #pinOverlay h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.5rem;
+    letter-spacing: 0.1em;
+    color: var(--accent);
+  }
+  #pinOverlay p {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  #pinInput {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 1.5rem;
+    letter-spacing: 0.3em;
+    text-align: center;
+    padding: 12px 24px;
+    border-radius: 8px;
+    width: 200px;
+    outline: none;
+  }
+  #pinInput:focus {
+    border-color: var(--accent);
+  }
+  #pinError {
+    color: var(--accent2);
+    font-size: 0.85rem;
+    min-height: 1.2em;
+  }
+  #pinSubmit {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 500;
+    font-size: 1rem;
+    padding: 10px 32px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  #pinSubmit:hover { opacity: 0.85; }
 </style>
 </head>
 <body>
+
+<!-- PIN OVERLAY -->
+<div id="pinOverlay">
+  <h1>PROMPTER</h1>
+  <p>Enter PIN to continue</p>
+  <input id="pinInput" type="password" inputmode="numeric" maxlength="6" placeholder="······" autofocus />
+  <div id="pinError"></div>
+  <button id="pinSubmit" onclick="checkPin()">Unlock</button>
+</div>
 
 <!-- SIDEBAR (settings only) -->
 <div id="sidebar">
@@ -1141,6 +1205,35 @@ Bold, italic, and line breaks are preserved."></div>
       document.execCommand('insertHTML', false, converted);
     }
   });
+
+  // ── PIN Auth ──
+  const PIN_HASH = '3fc4a0a8d9b879541ea135a422991779e7d9e3dd8e16b02db3c7bdf06cfb8e3a'; // SHA-256 of 554433
+
+  async function sha256(str) {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+
+  async function checkPin() {
+    const val = document.getElementById('pinInput').value.trim();
+    const hash = await sha256(val);
+    if (hash === PIN_HASH) {
+      localStorage.setItem('prompter_auth', '1');
+      document.getElementById('pinOverlay').style.display = 'none';
+    } else {
+      document.getElementById('pinError').textContent = 'Incorrect PIN';
+      document.getElementById('pinInput').value = '';
+      document.getElementById('pinInput').focus();
+    }
+  }
+
+  document.getElementById('pinInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') checkPin();
+  });
+
+  if (localStorage.getItem('prompter_auth') === '1') {
+    document.getElementById('pinOverlay').style.display = 'none';
+  }
 
   // ── Init ──
   updateEditorStyle();
