@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prompter</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Bebas+Neue&family=DM+Sans:wght@300;400;500&display=swap');
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --surface2: #1e1e1e;
+    --border: #2a2a2a;
+    --accent: #e8ff47;
+    --accent2: #ff6b35;
+    --text: #f0f0f0;
+    --muted: #666;
+    --panel-w: 320px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+  }
+
+  /* ── SIDEBAR ── */
+  #sidebar {
+    width: var(--panel-w);
+    min-width: var(--panel-w);
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    transition: transform 0.3s ease;
+    z-index: 10;
+  }
+
+  #sidebar.hidden {
+    transform: translateX(calc(-1 * var(--panel-w)));
+    position: absolute;
+    height: 100%;
+  }
+
+  .sidebar-header {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    letter-spacing: 3px;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .logo span { color: var(--muted); font-size: 11px; display: block; letter-spacing: 2px; font-family: 'DM Mono', monospace; margin-top: 2px; }
+
+  .controls-section {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 12px;
+  }
+
+  .control-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+  }
+
+  .control-row:last-child { margin-bottom: 0; }
+
+  .control-label {
+    font-size: 12px;
+    color: #aaa;
+    font-weight: 400;
+  }
+
+  .control-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    min-width: 32px;
+    text-align: right;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+    margin-top: 6px;
+    cursor: pointer;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+
+  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.3); }
+
+  .toggle-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .toggle-btn {
+    flex: 1;
+    min-width: 0;
+    padding: 7px 8px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: #888;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .toggle-btn:hover { border-color: #444; color: #ccc; }
+
+  .toggle-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #000;
+    font-weight: 500;
+  }
+
+  /* Script editor */
+  .script-section {
+    flex: 1;
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    min-height: 200px;
+  }
+
+  .script-toolbar {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+
+  .fmt-btn {
+    padding: 4px 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: #aaa;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .fmt-btn:hover { background: var(--border); color: var(--text); }
+  .fmt-btn.bold { font-weight: 700; }
+  .fmt-btn.italic { font-style: italic; }
+
+  #scriptEditor {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    color: var(--text);
+    font-size: 13px;
+    line-height: 1.7;
+    outline: none;
+    resize: none;
+    overflow-y: auto;
+    min-height: 120px;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  #scriptEditor:focus { border-color: #3a3a3a; }
+  #scriptEditor[contenteditable] b, #scriptEditor[contenteditable] strong { font-weight: 700; }
+  #scriptEditor[contenteditable] i, #scriptEditor[contenteditable] em { font-style: italic; }
+
+  /* Action buttons */
+  .actions {
+    padding: 16px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border-top: 1px solid var(--border);
+  }
+
+  .btn-start {
+    padding: 14px;
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: #000;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 3px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-start:hover { background: #d4eb20; transform: translateY(-1px); }
+
+  .btn-secondary {
+    padding: 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: #888;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .btn-secondary:hover { border-color: #444; color: #ccc; }
+
+  /* ── PROMPTER STAGE ── */
+  #stage {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #stageOverlayTop, #stageOverlayBottom {
+    position: absolute;
+    left: 0; right: 0;
+    height: 80px;
+    z-index: 3;
+    pointer-events: none;
+  }
+  #stageOverlayTop { top: 0; background: linear-gradient(to bottom, #000 0%, transparent 100%); }
+  #stageOverlayBottom { bottom: 0; background: linear-gradient(to top, #000 0%, transparent 100%); }
+
+  #scrollContainer {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    overflow: hidden;
+  }
+
+  #promptText {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 80px 60px;
+    line-height: 1.5;
+    color: #fff;
+    font-family: 'DM Sans', sans-serif;
+    will-change: transform;
+    word-break: break-word;
+  }
+
+  #promptText p { margin-bottom: 0.5em; }
+  #promptText p:empty { height: 0.8em; display: block; }
+
+  /* Focus line */
+  #focusLine {
+    position: absolute;
+    left: 0; right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 2px;
+    background: rgba(232, 255, 71, 0.15);
+    z-index: 2;
+    pointer-events: none;
+    display: none;
+  }
+
+  /* Placeholder */
+  #stagePlaceholder {
+    text-align: center;
+    color: var(--muted);
+    pointer-events: none;
+  }
+  #stagePlaceholder .big { font-family: 'Bebas Neue', sans-serif; font-size: 48px; letter-spacing: 4px; color: #222; }
+  #stagePlaceholder p { font-size: 13px; margin-top: 8px; }
+
+  /* Floating controls during playback */
+  #floatingControls {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: none;
+    gap: 12px;
+    z-index: 10;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid #2a2a2a;
+    border-radius: 50px;
+    padding: 10px 20px;
+    align-items: center;
+  }
+
+  #floatingControls.visible { display: flex; }
+
+  .fc-btn {
+    background: none;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    font-size: 18px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.15s;
+    font-family: 'DM Mono', monospace;
+  }
+  .fc-btn:hover { color: var(--accent); }
+  .fc-btn.primary { color: var(--accent); font-size: 22px; }
+
+  .fc-speed {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    min-width: 40px;
+    text-align: center;
+  }
+
+  /* Toggle sidebar button */
+  #sidebarToggle {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    z-index: 20;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(8px);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: #888;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.15s;
+    display: none;
+  }
+  #sidebarToggle:hover { color: var(--accent); }
+  #sidebarToggle.visible { display: block; }
+
+  /* Share toast */
+  #toast {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--accent);
+    color: #000;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 12px;
+    opacity: 0;
+    transition: all 0.3s;
+    pointer-events: none;
+    z-index: 100;
+    white-space: nowrap;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* Share modal */
+  #shareModal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+  #shareModal.open { display: flex; }
+  #shareBox {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    width: min(540px, 90vw);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  #shareBox h3 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px;
+    letter-spacing: 2px;
+    color: var(--accent);
+  }
+  #shareBox p {
+    font-size: 12px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  #shareUrlWrap {
+    display: flex;
+    gap: 8px;
+  }
+  #shareUrl {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    outline: none;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+  #shareUrl:focus { border-color: #444; }
+  #btnCopyUrl {
+    padding: 10px 16px;
+    background: var(--accent);
+    border: none;
+    border-radius: 6px;
+    color: #000;
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.15s;
+  }
+  #btnCopyUrl:hover { background: #d4eb20; }
+  #btnCloseModal {
+    align-self: flex-end;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 16px;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  #btnCloseModal:hover { color: var(--text); border-color: #444; }
+
+  /* Scrollbar */
+  #scriptEditor::-webkit-scrollbar { width: 4px; }
+  #scriptEditor::-webkit-scrollbar-track { background: transparent; }
+  #scriptEditor::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  #sidebar::-webkit-scrollbar { width: 4px; }
+  #sidebar::-webkit-scrollbar-track { background: transparent; }
+  #sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="sidebar-header">
+    <div class="logo">PROMPTER<span>// teleprompter</span></div>
+  </div>
+
+  <!-- FONT SIZE -->
+  <div class="controls-section">
+    <div class="section-label">Typography</div>
+    <div class="control-row">
+      <span class="control-label">Font Size</span>
+      <span class="control-value" id="fontSizeVal">48px</span>
+    </div>
+    <input type="range" id="fontSize" min="24" max="120" value="48">
+
+    <div class="control-row" style="margin-top:14px;">
+      <span class="control-label">Line Height</span>
+      <span class="control-value" id="lineHeightVal">1.5×</span>
+    </div>
+    <input type="range" id="lineHeight" min="10" max="25" value="15">
+  </div>
+
+  <!-- SCROLL SPEED -->
+  <div class="controls-section">
+    <div class="section-label">Scroll</div>
+    <div class="control-row">
+      <span class="control-label">Speed</span>
+      <span class="control-value" id="speedVal">3</span>
+    </div>
+    <input type="range" id="scrollSpeed" min="1" max="10" value="3">
+  </div>
+
+  <!-- MARGINS -->
+  <div class="controls-section">
+    <div class="section-label">Margins</div>
+    <div class="control-row">
+      <span class="control-label">Side Padding</span>
+      <span class="control-value" id="marginVal">60px</span>
+    </div>
+    <input type="range" id="margin" min="0" max="300" value="60">
+  </div>
+
+  <!-- TRANSFORM OPTIONS -->
+  <div class="controls-section">
+    <div class="section-label">Mirror / Flip</div>
+    <div class="toggle-row">
+      <button class="toggle-btn" id="btnFlipH" onclick="toggleFlip('H')">↔ H-Flip</button>
+      <button class="toggle-btn" id="btnFlipV" onclick="toggleFlip('V')">↕ V-Flip</button>
+      <button class="toggle-btn" id="btnFocusLine" onclick="toggleFocusLine()">— Focus</button>
+    </div>
+  </div>
+
+  <!-- TEXT COLOR -->
+  <div class="controls-section">
+    <div class="section-label">Text Color</div>
+    <div class="toggle-row">
+      <button class="toggle-btn active" id="colorWhite" onclick="setTextColor('white', this)">White</button>
+      <button class="toggle-btn" id="colorYellow" onclick="setTextColor('#e8ff47', this)">Yellow</button>
+      <button class="toggle-btn" id="colorGreen" onclick="setTextColor('#4dff91', this)">Green</button>
+    </div>
+  </div>
+
+  <!-- SCRIPT EDITOR -->
+  <div class="script-section">
+    <div class="section-label">Script</div>
+    <div class="script-toolbar">
+      <button class="fmt-btn bold" onclick="execFmt('bold')"><b>B</b></button>
+      <button class="fmt-btn italic" onclick="execFmt('italic')"><i>I</i></button>
+      <button class="fmt-btn" onclick="execFmt('underline')"><u>U</u></button>
+      <button class="fmt-btn" onclick="clearScript()" style="margin-left:auto; color:#666;">✕ Clear</button>
+    </div>
+    <div id="scriptEditor" contenteditable="true" spellcheck="false"
+      placeholder="Paste or type your script here...&#10;&#10;Bold, italic, and line breaks are preserved.">
+    </div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="actions">
+    <button class="btn-start" onclick="startPrompter()">▶ START</button>
+    <button class="btn-secondary" onclick="shareScript()">↗ Share via URL</button>
+  </div>
+</div>
+
+<!-- STAGE -->
+<div id="stage">
+  <button id="sidebarToggle" onclick="toggleSidebar()">☰</button>
+  <div id="stageOverlayTop"></div>
+  <div id="stageOverlayBottom"></div>
+  <div id="focusLine"></div>
+  <div id="scrollContainer">
+    <div id="promptText"></div>
+  </div>
+  <div id="stagePlaceholder">
+    <div class="big">PROMPTER</div>
+    <p>Add your script in the panel and hit START</p>
+  </div>
+  <div id="floatingControls">
+    <button class="fc-btn" onclick="adjustSpeed(-1)">−</button>
+    <span class="fc-speed" id="fcSpeedLabel">3</span>
+    <button class="fc-btn" onclick="adjustSpeed(1)">+</button>
+    <button class="fc-btn primary" id="playPauseBtn" onclick="togglePlayPause()">⏸</button>
+    <button class="fc-btn" onclick="restartPrompter()">↺</button>
+    <button class="fc-btn" onclick="stopPrompter()">✕</button>
+  </div>
+</div>
+
+<div id="toast">Script loaded!</div>
+
+<!-- Share Modal -->
+<div id="shareModal">
+  <div id="shareBox">
+    <h3>Share Script</h3>
+    <p>Copy this link and open it on any device — your script and all settings will load automatically.</p>
+    <div id="shareUrlWrap">
+      <input id="shareUrl" type="text" readonly>
+      <button id="btnCopyUrl" onclick="copyShareUrl()">Copy</button>
+    </div>
+    <p id="copyConfirm" style="color: var(--accent); display:none;">✓ Copied to clipboard</p>
+    <button id="btnCloseModal" onclick="closeShareModal()">Close</button>
+  </div>
+</div>
+
+<script>
+  // State
+  let scrollY = 0;
+  let isPlaying = false;
+  let animFrame = null;
+  let flipH = false, flipV = false;
+  let currentSpeed = 3;
+  let focusLineOn = false;
+  let textColor = 'white';
+  let sidebarHidden = false;
+
+  const promptText = document.getElementById('promptText');
+  const scrollContainer = document.getElementById('scrollContainer');
+  const placeholder = document.getElementById('stagePlaceholder');
+  const floatingControls = document.getElementById('floatingControls');
+  const fcSpeedLabel = document.getElementById('fcSpeedLabel');
+  const focusLine = document.getElementById('focusLine');
+  const sidebarToggle = document.getElementById('sidebarToggle');
+  const sidebar = document.getElementById('sidebar');
+
+  // Sliders
+  document.getElementById('fontSize').addEventListener('input', e => {
+    document.getElementById('fontSizeVal').textContent = e.target.value + 'px';
+    if (isPlaying) updatePromptStyle();
+  });
+
+  document.getElementById('lineHeight').addEventListener('input', e => {
+    const v = (e.target.value / 10).toFixed(1);
+    document.getElementById('lineHeightVal').textContent = v + '×';
+    if (isPlaying) updatePromptStyle();
+  });
+
+  document.getElementById('scrollSpeed').addEventListener('input', e => {
+    currentSpeed = parseInt(e.target.value);
+    document.getElementById('speedVal').textContent = currentSpeed;
+    fcSpeedLabel.textContent = currentSpeed;
+  });
+
+  document.getElementById('margin').addEventListener('input', e => {
+    document.getElementById('marginVal').textContent = e.target.value + 'px';
+    if (isPlaying) updatePromptStyle();
+  });
+
+  function updatePromptStyle() {
+    const fs = document.getElementById('fontSize').value;
+    const lh = (document.getElementById('lineHeight').value / 10).toFixed(1);
+    const mg = document.getElementById('margin').value;
+    promptText.style.fontSize = fs + 'px';
+    promptText.style.lineHeight = lh;
+    promptText.style.paddingLeft = mg + 'px';
+    promptText.style.paddingRight = mg + 'px';
+    promptText.style.color = textColor;
+    applyTransform();
+  }
+
+  function applyTransform() {
+    const sx = flipH ? -1 : 1;
+    const sy = flipV ? -1 : 1;
+    promptText.style.transform = `scaleX(${sx}) scaleY(${sy})`;
+    if (flipV) {
+      promptText.style.top = 'auto';
+      promptText.style.bottom = '0';
+    } else {
+      promptText.style.top = '0';
+      promptText.style.bottom = 'auto';
+    }
+  }
+
+  function toggleFlip(axis) {
+    if (axis === 'H') {
+      flipH = !flipH;
+      document.getElementById('btnFlipH').classList.toggle('active', flipH);
+    } else {
+      flipV = !flipV;
+      document.getElementById('btnFlipV').classList.toggle('active', flipV);
+    }
+    applyTransform();
+  }
+
+  function toggleFocusLine() {
+    focusLineOn = !focusLineOn;
+    document.getElementById('btnFocusLine').classList.toggle('active', focusLineOn);
+    focusLine.style.display = focusLineOn ? 'block' : 'none';
+  }
+
+  function setTextColor(color, btn) {
+    textColor = color;
+    document.querySelectorAll('#sidebar .controls-section .toggle-btn[id^="color"]').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    promptText.style.color = color;
+  }
+
+  function execFmt(cmd) {
+    document.getElementById('scriptEditor').focus();
+    document.execCommand(cmd, false, null);
+  }
+
+  function clearScript() {
+    document.getElementById('scriptEditor').innerHTML = '';
+  }
+
+  function getScriptHTML() {
+    return document.getElementById('scriptEditor').innerHTML;
+  }
+
+  function startPrompter() {
+    const html = getScriptHTML().trim();
+    if (!html) return;
+
+    // Build prompt content
+    promptText.innerHTML = html;
+    // Ensure proper paragraph wrapping
+    // Replace <div><br></div> and bare <br> sequences with paragraph spacing
+    placeholder.style.display = 'none';
+    scrollY = 0;
+    promptText.style.transform = '';
+
+    updatePromptStyle();
+
+    const stageH = scrollContainer.clientHeight;
+    promptText.style.paddingTop = (stageH * 0.35) + 'px';
+    promptText.style.paddingBottom = (stageH * 0.65) + 'px';
+
+    isPlaying = true;
+    floatingControls.classList.add('visible');
+    sidebarToggle.classList.add('visible');
+    document.getElementById('playPauseBtn').textContent = '⏸';
+    sidebar.classList.add('hidden');
+    sidebarHidden = true;
+
+    scroll();
+  }
+
+  function scroll() {
+    if (!isPlaying) return;
+
+    const maxScroll = promptText.scrollHeight - scrollContainer.clientHeight;
+
+    if (flipV) {
+      scrollY = Math.max(0, scrollY - (currentSpeed * 0.5));
+      promptText.style.transform = `scaleX(${flipH ? -1 : 1}) scaleY(-1)`;
+      const translateY = scrollY;
+      promptText.style.top = translateY + 'px';
+    } else {
+      scrollY += (currentSpeed * 0.5);
+      const maxT = promptText.scrollHeight;
+      if (scrollY > maxT) scrollY = maxT;
+      promptText.style.top = (-scrollY) + 'px';
+    }
+
+    animFrame = requestAnimationFrame(scroll);
+  }
+
+  function togglePlayPause() {
+    isPlaying = !isPlaying;
+    document.getElementById('playPauseBtn').textContent = isPlaying ? '⏸' : '▶';
+    if (isPlaying) scroll();
+    else cancelAnimationFrame(animFrame);
+  }
+
+  function restartPrompter() {
+    cancelAnimationFrame(animFrame);
+    scrollY = 0;
+    promptText.style.top = '0';
+    isPlaying = true;
+    document.getElementById('playPauseBtn').textContent = '⏸';
+    scroll();
+  }
+
+  function stopPrompter() {
+    cancelAnimationFrame(animFrame);
+    isPlaying = false;
+    scrollY = 0;
+    promptText.style.top = '0';
+    floatingControls.classList.remove('visible');
+    placeholder.style.display = 'block';
+    promptText.innerHTML = '';
+    sidebar.classList.remove('hidden');
+    sidebarHidden = false;
+    sidebarToggle.classList.remove('visible');
+  }
+
+  function adjustSpeed(delta) {
+    currentSpeed = Math.max(1, Math.min(10, currentSpeed + delta));
+    document.getElementById('scrollSpeed').value = currentSpeed;
+    document.getElementById('speedVal').textContent = currentSpeed;
+    fcSpeedLabel.textContent = currentSpeed;
+  }
+
+  function toggleSidebar() {
+    sidebarHidden = !sidebarHidden;
+    sidebar.classList.toggle('hidden', sidebarHidden);
+  }
+
+  // ── SHARE via URL ──
+  function shareScript() {
+    const html = getScriptHTML();
+    const settings = {
+      fontSize: document.getElementById('fontSize').value,
+      lineHeight: document.getElementById('lineHeight').value,
+      speed: document.getElementById('scrollSpeed').value,
+      margin: document.getElementById('margin').value,
+      flipH, flipV, textColor,
+      script: html
+    };
+    try {
+      const encoded = btoa(unescape(encodeURIComponent(JSON.stringify(settings))));
+      const url = window.location.href.split('?')[0] + '?s=' + encoded;
+      document.getElementById('shareUrl').value = url;
+      document.getElementById('copyConfirm').style.display = 'none';
+      document.getElementById('shareModal').classList.add('open');
+      setTimeout(() => document.getElementById('shareUrl').select(), 50);
+    } catch(e) {
+      alert('Script may be too large to encode in a URL.');
+    }
+  }
+
+  function copyShareUrl() {
+    const input = document.getElementById('shareUrl');
+    input.select();
+    input.setSelectionRange(0, 99999);
+    try {
+      navigator.clipboard.writeText(input.value).then(() => {
+        document.getElementById('copyConfirm').style.display = 'block';
+      }).catch(() => {
+        document.execCommand('copy');
+        document.getElementById('copyConfirm').style.display = 'block';
+      });
+    } catch(e) {
+      document.execCommand('copy');
+      document.getElementById('copyConfirm').style.display = 'block';
+    }
+  }
+
+  function closeShareModal() {
+    document.getElementById('shareModal').classList.remove('open');
+  }
+
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2800);
+  }
+
+  // ── LOAD FROM URL ──
+  function loadFromURL() {
+    const params = new URLSearchParams(window.location.search);
+    const s = params.get('s');
+    if (!s) return;
+    try {
+      const settings = JSON.parse(decodeURIComponent(escape(atob(s))));
+      document.getElementById('scriptEditor').innerHTML = settings.script || '';
+      if (settings.fontSize) {
+        document.getElementById('fontSize').value = settings.fontSize;
+        document.getElementById('fontSizeVal').textContent = settings.fontSize + 'px';
+      }
+      if (settings.lineHeight) {
+        document.getElementById('lineHeight').value = settings.lineHeight;
+        document.getElementById('lineHeightVal').textContent = (settings.lineHeight/10).toFixed(1) + '×';
+      }
+      if (settings.speed) {
+        document.getElementById('scrollSpeed').value = settings.speed;
+        document.getElementById('speedVal').textContent = settings.speed;
+        currentSpeed = parseInt(settings.speed);
+      }
+      if (settings.margin) {
+        document.getElementById('margin').value = settings.margin;
+        document.getElementById('marginVal').textContent = settings.margin + 'px';
+      }
+      if (settings.flipH) toggleFlip('H');
+      if (settings.flipV) toggleFlip('V');
+      if (settings.textColor && settings.textColor !== 'white') {
+        const colorMap = { '#e8ff47': 'colorYellow', '#4dff91': 'colorGreen' };
+        const btnId = colorMap[settings.textColor];
+        if (btnId) setTextColor(settings.textColor, document.getElementById(btnId));
+      }
+      showToast('Script loaded from shared link!');
+    } catch(e) {
+      console.warn('Could not load from URL:', e);
+    }
+  }
+
+  // Keyboard shortcuts
+  document.addEventListener('keydown', e => {
+    if (e.target === document.getElementById('scriptEditor')) return;
+    if (e.code === 'Space') { e.preventDefault(); if (isPlaying || promptText.innerHTML) togglePlayPause(); }
+    if (e.code === 'ArrowUp') adjustSpeed(1);
+    if (e.code === 'ArrowDown') adjustSpeed(-1);
+    if (e.code === 'Escape') { if (isPlaying) stopPrompter(); }
+  });
+
+  // Handle paste — strip unwanted styles, keep bold/italic/line breaks
+  document.getElementById('scriptEditor').addEventListener('paste', e => {
+    e.preventDefault();
+    const clipData = e.clipboardData;
+    const html = clipData.getData('text/html');
+    const plain = clipData.getData('text/plain');
+    if (html) {
+      // Clean HTML: keep only formatting tags
+      const tmp = document.createElement('div');
+      tmp.innerHTML = html;
+      // Remove spans with only style, keep content
+      tmp.querySelectorAll('span').forEach(span => {
+        const parent = span.parentNode;
+        while (span.firstChild) parent.insertBefore(span.firstChild, span);
+        parent.removeChild(span);
+      });
+      // Remove style attributes
+      tmp.querySelectorAll('[style]').forEach(el => el.removeAttribute('style'));
+      tmp.querySelectorAll('[class]').forEach(el => el.removeAttribute('class'));
+      document.execCommand('insertHTML', false, tmp.innerHTML);
+    } else {
+      // Convert plain text line breaks to HTML
+      const converted = plain
+        .split('\n')
+        .map(line => line ? `<div>${line}</div>` : '<div><br></div>')
+        .join('');
+      document.execCommand('insertHTML', false, converted);
+    }
+  });
+
+  // Init
+  loadFromURL();
+</script>
+</body>
+</html>
