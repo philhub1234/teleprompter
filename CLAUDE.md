@@ -14,8 +14,12 @@ A single-page teleprompter app hosted on GitHub Pages at `philhub1234.github.io/
 Everything lives in one file — HTML, CSS, JS. No build step, no bundler. This is intentional: GitHub Pages serves it directly and it stays simple to iterate on.
 
 ### Layout
-- **Sidebar (left)**: Settings only — font size, line height, speed, margins, mirror/flip, text color, formatting toolbar (B/I/U). Collapsible.
+- **Sidebar (left)**: Settings only — font size, line height, speed, margins, mirror/flip, text color, formatting toolbar (B/I/U). Collapsible via a circular chevron button on the sidebar edge.
 - **Main stage (right)**: This IS the script editor AND the teleprompter display. In edit mode, it's a contenteditable area where you paste/type your script. When you hit Start, the same content scrolls as the teleprompter.
+
+### PIN protection
+- A PIN overlay appears on page load. PIN is `554433`, stored as a SHA-256 hash in the JS.
+- Once unlocked, auth persists in `localStorage` so the user isn't asked again on the same device/browser.
 
 ### Cross-device script sharing (Firebase Firestore)
 The old approach encoded the entire script as base64 in the URL query string. This breaks on long scripts (URL too long for browsers). The new approach:
@@ -25,10 +29,9 @@ The old approach encoded the entire script as base64 in the URL query string. Th
 3. Gets a short URL like `https://philhub1234.github.io/teleprompter/#s/abc123`
 4. Opens that URL on phone → script loads automatically
 
-**Firebase setup** (one-time, already done or needs to be done):
-- Project: Create at https://console.firebase.google.com
-- Enable Firestore in test mode (or with read-anyone / write-anyone rules for simplicity)
-- Copy the Firebase config object into the `firebaseConfig` variable in `index.html`
+**Firebase setup** (already configured):
+- Project: `teleprompter-app-66adb` on Firebase console
+- Firestore is live and connected — config is already in `index.html`
 - No authentication required — scripts are stored with random IDs (unguessable)
 
 **Firestore rules** (set in Firebase Console → Firestore → Rules):
@@ -79,11 +82,7 @@ Fields:
 4. Push to `main` branch → GitHub Pages auto-deploys
 
 ## Firebase Config Location
-The Firebase config is at the top of the `<script>` section in `index.html`. Look for:
-```js
-const firebaseConfig = { ... };
-```
-This needs to be filled in with real values from the Firebase console.
+The Firebase config is at the top of the `<script>` section in `index.html`. Already populated with live values for project `teleprompter-app-66adb`.
 
 ## Important Constraints
 - **Must remain a single HTML file** — no build step, no separate JS/CSS files
@@ -97,7 +96,10 @@ This needs to be filled in with real values from the Firebase console.
 - Arrow Up/Down: adjust speed
 - Escape: stop and return to editor
 
+## Speed Slider
+- Slider range is 1–10 but maps to actual speeds 1.0–5.5 in 0.5 increments via `sliderToSpeed()`
+- This gives finer control at the low end which is where normal use sits
+
 ## Known Issues / TODO
-- Firebase project needs to be created and config added
 - Consider adding local script saving (IndexedDB) for offline use
 - Consider a "recent scripts" list
