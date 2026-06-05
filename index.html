@@ -879,14 +879,8 @@ Bold, italic, and line breaks are preserved."></div>
   function applyTransform() {
     const sx = flipH ? -1 : 1;
     const sy = flipV ? -1 : 1;
-    promptText.style.transform = `scaleX(${sx}) scaleY(${sy})`;
-    if (flipV) {
-      promptText.style.top = 'auto';
-      promptText.style.bottom = '0';
-    } else {
-      promptText.style.top = '0';
-      promptText.style.bottom = 'auto';
-    }
+    const t = `scaleX(${sx}) scaleY(${sy})`;
+    document.getElementById('stageContent').style.transform = t;
   }
 
   function toggleFlip(axis) {
@@ -897,7 +891,7 @@ Bold, italic, and line breaks are preserved."></div>
       flipV = !flipV;
       document.getElementById('btnFlipV').classList.toggle('active', flipV);
     }
-    if (isPlaying) applyTransform();
+    applyTransform();
   }
 
   function toggleFocusLine() {
@@ -937,7 +931,7 @@ Bold, italic, and line breaks are preserved."></div>
     stageOverlayBottom.style.display = 'block';
 
     scrollPos = 0;
-    promptText.style.transform = '';
+    promptText.style.top = '0';
     updatePromptStyle();
 
     const stageH = document.getElementById('stageContent').clientHeight;
@@ -961,16 +955,10 @@ Bold, italic, and line breaks are preserved."></div>
   function scroll() {
     if (!isPlaying) return;
 
-    if (flipV) {
-      scrollPos = Math.max(0, scrollPos - (currentSpeed * 0.5));
-      promptText.style.transform = `scaleX(${flipH ? -1 : 1}) scaleY(-1)`;
-      promptText.style.top = scrollPos + 'px';
-    } else {
-      scrollPos += (currentSpeed * 0.5);
-      const maxT = promptText.scrollHeight;
-      if (scrollPos > maxT) scrollPos = maxT;
-      promptText.style.top = (-scrollPos) + 'px';
-    }
+    scrollPos += (currentSpeed * 0.5);
+    const maxT = promptText.scrollHeight;
+    if (scrollPos > maxT) scrollPos = maxT;
+    promptText.style.top = (-scrollPos) + 'px';
 
     animFrame = requestAnimationFrame(scroll);
   }
