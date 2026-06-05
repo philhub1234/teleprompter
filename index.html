@@ -299,8 +299,11 @@
     word-break: break-word;
   }
 
-  #promptText p { margin-bottom: 0.5em; }
-  #promptText p:empty { height: 0.8em; display: block; }
+  #promptText p, #promptText div { margin-bottom: 1.2em; }
+  #promptText p:empty, #promptText div:empty { min-height: 0.8em; display: block; margin-bottom: 0; }
+  #promptText br { display: block; content: ''; }
+  #scriptEditor p, #scriptEditor div { margin-bottom: 0.8em; }
+  #scriptEditor p:empty, #scriptEditor div:empty { min-height: 0.8em; display: block; margin-bottom: 0; }
 
   /* Overlays */
   #stageOverlayTop, #stageOverlayBottom {
@@ -370,21 +373,35 @@
 
   /* Toggle sidebar button */
   #sidebarToggle {
-    position: absolute;
-    top: 12px;
-    left: 12px;
-    z-index: 20;
-    background: rgba(0,0,0,0.6);
-    backdrop-filter: blur(8px);
+    position: fixed;
+    top: 50%;
+    left: var(--panel-w);
+    transform: translateY(-50%) translateX(-50%);
+    z-index: 100;
+    background: var(--surface2);
     border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 8px 12px;
-    color: #888;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    color: #aaa;
     cursor: pointer;
-    font-size: 16px;
-    transition: all 0.15s;
+    font-size: 14px;
+    line-height: 1;
+    transition: left 0.3s ease, color 0.15s, border-color 0.15s;
+    touch-action: manipulation;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    box-shadow: 0 0 0 4px var(--bg);
   }
-  #sidebarToggle:hover { color: var(--accent); }
+  #sidebarToggle.sidebar-hidden {
+    left: 0;
+  }
+  #sidebarToggle:hover { color: var(--accent); border-color: var(--accent); }
+  @media (max-width: 700px) {
+    #sidebarToggle { box-shadow: 0 0 0 3px var(--bg); }
+  }
 
   /* Toast */
   #toast {
@@ -779,7 +796,7 @@ Bold, italic, and line breaks are preserved."></div>
   let isPlaying = false;
   let animFrame = null;
   let flipH = false, flipV = false;
-  let currentSpeed = 3;
+  let currentSpeed = 2;
   let focusLineOn = false;
   let textColor = 'white';
   let sidebarVisible = true;
@@ -821,10 +838,13 @@ Bold, italic, and line breaks are preserved."></div>
     if (isPlaying) updatePromptStyle();
   });
 
+  function sliderToSpeed(val) { return 1 + (parseInt(val) - 1) * 0.5; }
+
   document.getElementById('scrollSpeed').addEventListener('input', e => {
-    currentSpeed = parseInt(e.target.value);
-    document.getElementById('speedVal').textContent = currentSpeed;
-    fcSpeedLabel.textContent = currentSpeed;
+    currentSpeed = sliderToSpeed(e.target.value);
+    const label = currentSpeed % 1 === 0 ? currentSpeed : currentSpeed.toFixed(1);
+    document.getElementById('speedVal').textContent = label;
+    fcSpeedLabel.textContent = label;
   });
 
   document.getElementById('margin').addEventListener('input', e => {
@@ -931,6 +951,8 @@ Bold, italic, and line breaks are preserved."></div>
     // Hide sidebar on play
     sidebar.classList.add('hidden');
     sidebarVisible = false;
+    sidebarToggle.textContent = '›';
+    sidebarToggle.classList.add('sidebar-hidden');
 
     if (focusLineOn) focusLine.style.display = 'block';
     scroll();
@@ -988,18 +1010,25 @@ Bold, italic, and line breaks are preserved."></div>
     // Show sidebar again
     sidebar.classList.remove('hidden');
     sidebarVisible = true;
+    sidebarToggle.textContent = '‹';
+    sidebarToggle.classList.remove('sidebar-hidden');
   }
 
   function adjustSpeed(delta) {
-    currentSpeed = Math.max(1, Math.min(10, currentSpeed + delta));
-    document.getElementById('scrollSpeed').value = currentSpeed;
-    document.getElementById('speedVal').textContent = currentSpeed;
-    fcSpeedLabel.textContent = currentSpeed;
+    const slider = document.getElementById('scrollSpeed');
+    const newVal = Math.max(1, Math.min(10, parseInt(slider.value) + delta));
+    slider.value = newVal;
+    currentSpeed = sliderToSpeed(newVal);
+    const label = currentSpeed % 1 === 0 ? currentSpeed : currentSpeed.toFixed(1);
+    document.getElementById('speedVal').textContent = label;
+    fcSpeedLabel.textContent = label;
   }
 
   function toggleSidebar() {
     sidebarVisible = !sidebarVisible;
     sidebar.classList.toggle('hidden', !sidebarVisible);
+    sidebarToggle.textContent = sidebarVisible ? '‹' : '›';
+    sidebarToggle.classList.toggle('sidebar-hidden', !sidebarVisible);
   }
 
   // ── Share via Firebase ──
@@ -1137,9 +1166,10 @@ Bold, italic, and line breaks are preserved."></div>
     }
     if (s.speed) {
       document.getElementById('scrollSpeed').value = s.speed;
-      document.getElementById('speedVal').textContent = s.speed;
-      currentSpeed = parseInt(s.speed);
-      fcSpeedLabel.textContent = currentSpeed;
+      currentSpeed = sliderToSpeed(s.speed);
+      const label = currentSpeed % 1 === 0 ? currentSpeed : currentSpeed.toFixed(1);
+      document.getElementById('speedVal').textContent = label;
+      fcSpeedLabel.textContent = label;
     }
     if (s.margin) {
       document.getElementById('margin').value = s.margin;
@@ -1173,13 +1203,49 @@ Bold, italic, and line breaks are preserved."></div>
     if (html) {
       const tmp = document.createElement('div');
       tmp.innerHTML = html;
-      // Remove spans (keep their children)
+
+      // Unwrap non-semantic wrappers (html/body/meta from clipboard)
+      ['html','body','head','meta','style','title'].forEach(tag => {
+        tmp.querySelectorAll(tag).forEach(el => {
+          const parent = el.parentNode;
+          if (!parent) return;
+          while (el.firstChild) parent.insertBefore(el.firstChild, el);
+          parent.removeChild(el);
+        });
+      });
+
+      // Convert heading tags to bold divs (preserve visual weight)
+      tmp.querySelectorAll('h1,h2,h3,h4,h5,h6').forEach(h => {
+        const d = document.createElement('div');
+        d.innerHTML = `<b>${h.innerHTML}</b>`;
+        h.replaceWith(d);
+      });
+
+      // Convert list items to divs
+      tmp.querySelectorAll('li').forEach(li => {
+        const d = document.createElement('div');
+        d.innerHTML = li.innerHTML;
+        li.replaceWith(d);
+      });
+      tmp.querySelectorAll('ul,ol').forEach(list => {
+        const parent = list.parentNode;
+        while (list.firstChild) parent.insertBefore(list.firstChild, list);
+        parent.removeChild(list);
+      });
+
+      // Preserve bold/italic/underline spans, unwrap the rest
       tmp.querySelectorAll('span').forEach(span => {
-        // Preserve bold/italic spans from Notion
         const style = span.getAttribute('style') || '';
-        const isBold = style.includes('font-weight') && (style.includes('700') || style.includes('bold'));
-        const isItalic = style.includes('font-style') && style.includes('italic');
-        if (isBold) {
+        const isBold = /font-weight\s*:\s*(bold|700|800|900)/i.test(style);
+        const isItalic = /font-style\s*:\s*italic/i.test(style);
+        const isUnderline = /text-decoration[^:]*:\s*[^;]*underline/i.test(style);
+        if (isBold && isItalic) {
+          const b = document.createElement('b');
+          const i = document.createElement('i');
+          i.innerHTML = span.innerHTML;
+          b.appendChild(i);
+          span.replaceWith(b);
+        } else if (isBold) {
           const b = document.createElement('b');
           b.innerHTML = span.innerHTML;
           span.replaceWith(b);
@@ -1187,27 +1253,44 @@ Bold, italic, and line breaks are preserved."></div>
           const i = document.createElement('i');
           i.innerHTML = span.innerHTML;
           span.replaceWith(i);
+        } else if (isUnderline) {
+          const u = document.createElement('u');
+          u.innerHTML = span.innerHTML;
+          span.replaceWith(u);
         } else {
           const parent = span.parentNode;
           while (span.firstChild) parent.insertBefore(span.firstChild, span);
           parent.removeChild(span);
         }
       });
-      // Remove style/class attributes from remaining elements
-      tmp.querySelectorAll('[style]').forEach(el => el.removeAttribute('style'));
-      tmp.querySelectorAll('[class]').forEach(el => el.removeAttribute('class'));
+
+      // Strip all remaining style/class/id attributes
+      tmp.querySelectorAll('[style],[class],[id]').forEach(el => {
+        el.removeAttribute('style');
+        el.removeAttribute('class');
+        el.removeAttribute('id');
+      });
+
+      // Strip any remaining non-content tags
+      tmp.querySelectorAll('table,thead,tbody,tr,td,th,img,figure,figcaption,aside,nav,footer,header,button,input,select,textarea').forEach(el => {
+        const parent = el.parentNode;
+        if (!parent) return;
+        while (el.firstChild) parent.insertBefore(el.firstChild, el);
+        parent.removeChild(el);
+      });
+
       document.execCommand('insertHTML', false, tmp.innerHTML);
     } else {
       const converted = plain
         .split('\n')
-        .map(line => line ? `<div>${line}</div>` : '<div><br></div>')
+        .map(line => line.trim() ? `<div>${line}</div>` : '<div><br></div>')
         .join('');
       document.execCommand('insertHTML', false, converted);
     }
   });
 
   // ── PIN Auth ──
-  const PIN_HASH = '3fc4a0a8d9b879541ea135a422991779e7d9e3dd8e16b02db3c7bdf06cfb8e3a'; // SHA-256 of 554433
+  const PIN_HASH = '294e2167aadcf513ae42f77606081acaaa3e53d203e7551df2d2ffcdf19bb0e6'; // SHA-256 of 554433
 
   async function sha256(str) {
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
@@ -1236,6 +1319,7 @@ Bold, italic, and line breaks are preserved."></div>
   }
 
   // ── Init ──
+  sidebarToggle.textContent = '‹';
   updateEditorStyle();
   loadFromURL();
 </script>
