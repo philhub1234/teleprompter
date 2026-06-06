@@ -532,32 +532,246 @@
   #sidebar::-webkit-scrollbar-track { background: transparent; }
   #sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
-  /* ── MOBILE ── */
-  @media (max-width: 700px) {
-    :root { --panel-w: 260px; }
-
-    #sidebar {
-      position: fixed;
-      top: 0; left: 0; bottom: 0;
-      z-index: 50;
-      box-shadow: 4px 0 20px rgba(0,0,0,0.5);
+  /* ── MOBILE TOP BAR ── */
+  @media (max-width: 768px) {
+    body {
+      flex-direction: column;
     }
 
-    #sidebar.hidden {
-      transform: translateX(calc(-1 * var(--panel-w)));
-      margin-left: 0;
+    /* Hide the desktop sidebar entirely */
+    #sidebar {
+      display: none !important;
+    }
+
+    /* Hide desktop sidebar toggle */
+    #sidebarToggle {
+      display: none !important;
+    }
+
+    /* Show the mobile top bar */
+    #mobileTopBar {
+      display: flex !important;
+    }
+
+    /* Stage fills remaining height */
+    #stage {
+      flex: 1;
+      min-height: 0;
     }
 
     #scriptEditor {
-      padding: 24px 20px;
+      padding: 20px 16px;
       font-size: 24px;
     }
 
     #promptText {
-      padding-left: 20px;
-      padding-right: 20px;
+      padding-left: 16px;
+      padding-right: 16px;
     }
+
+    /* Edit toolbar slimmer on mobile */
+    #editToolbar {
+      padding: 7px 12px;
+      gap: 4px;
+    }
+
+    .toolbar-hint { display: none; }
   }
+
+  /* Mobile top bar — hidden on desktop */
+  #mobileTopBar {
+    display: none;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 10px;
+    height: 48px;
+    flex-shrink: 0;
+    z-index: 20;
+    transition: opacity 0.4s ease;
+  }
+
+  #mobileTopBar.faded {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  #btnMobilePlay {
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: #000;
+    font-size: 18px;
+    width: 42px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+  #btnMobilePlay:hover { background: #d4eb20; }
+  #btnMobilePlay.stop { background: #ff4444; color: #fff; }
+
+  .mob-top-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+    justify-content: center;
+  }
+
+  .mob-icon-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: #888;
+    font-size: 15px;
+    width: 36px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .mob-icon-btn:hover, .mob-icon-btn.active { border-color: var(--accent); color: var(--accent); }
+
+  #btnMobileChevron {
+    background: none;
+    border: none;
+    color: #666;
+    font-size: 20px;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: color 0.15s, transform 0.3s;
+    flex-shrink: 0;
+  }
+  #btnMobileChevron:hover { color: #aaa; }
+  #btnMobileChevron.open { transform: rotate(180deg); }
+
+  /* Dropdown sheet — anchored below top bar */
+  #mobileSheet {
+    display: none;
+    position: fixed;
+    top: 48px;
+    left: 0; right: 0;
+    z-index: 300;
+  }
+
+  #mobileSheet.open { display: block; }
+
+  #mobileSheetOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 0;
+  }
+
+  #mobileSheetPanel {
+    position: relative;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    transform: translateY(-100%);
+    transition: transform 0.25s ease;
+    overflow: hidden;
+    z-index: 1;
+  }
+
+  #mobileSheet.open #mobileSheetPanel {
+    transform: translateY(0);
+  }
+
+  .sheet-handle {
+    width: 32px;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 8px auto 6px;
+  }
+
+  .sheet-body {
+    padding: 4px 0 8px;
+  }
+
+  /* Compact slider row: label — slider — value all on one line */
+  .sheet-ctrl {
+    display: grid;
+    grid-template-columns: 72px 1fr 36px;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 14px;
+  }
+
+  .sheet-ctrl-label {
+    font-size: 11px;
+    color: #888;
+    white-space: nowrap;
+  }
+
+  .sheet-ctrl-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--accent);
+    text-align: right;
+  }
+
+  /* Compact toggle row */
+  .sheet-toggle-row {
+    display: flex;
+    gap: 5px;
+    padding: 4px 14px;
+  }
+
+  .sheet-toggle-row .toggle-btn {
+    padding: 5px 4px;
+    font-size: 9px;
+  }
+
+  /* Bottom action row: share + clear side by side */
+  .sheet-action-row {
+    display: flex;
+    gap: 8px;
+    padding: 6px 14px 4px;
+  }
+
+  .sheet-btn-secondary {
+    flex: 1;
+    padding: 8px 4px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: #888;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-align: center;
+  }
+  .sheet-btn-secondary:hover { border-color: #444; color: #ccc; }
+
+  /* Close chevron at bottom of sheet */
+  #sheetCloseBtn {
+    display: block;
+    width: 100%;
+    padding: 8px 0 10px;
+    background: none;
+    border: none;
+    color: var(--muted);
+    font-size: 18px;
+    text-align: center;
+    cursor: pointer;
+    line-height: 1;
+  }
+  #sheetCloseBtn:hover { color: #aaa; }
   /* ── PIN OVERLAY ── */
   #pinOverlay {
     position: fixed;
@@ -624,6 +838,65 @@
   <input id="pinInput" type="password" inputmode="numeric" maxlength="6" placeholder="······" autofocus />
   <div id="pinError"></div>
   <button id="pinSubmit" onclick="checkPin()">Unlock</button>
+</div>
+
+<!-- MOBILE TOP BAR (hidden on desktop) -->
+<div id="mobileTopBar">
+  <button id="btnMobilePlay" onclick="mobilePlayStop()">▶</button>
+  <div class="mob-top-controls" id="mobTopControls">
+    <button class="mob-icon-btn" onclick="toggleFlip('H')" title="H-Flip">↔</button>
+    <button class="mob-icon-btn" onclick="toggleFlip('V')" title="V-Flip">↕</button>
+    <button class="mob-icon-btn" onclick="toggleFocusLine()" title="Focus line">—</button>
+  </div>
+  <button id="btnMobileChevron" onclick="toggleMobileSheet()">∨</button>
+</div>
+
+<!-- MOBILE BOTTOM SHEET -->
+<div id="mobileSheet">
+  <div id="mobileSheetOverlay" onclick="closeMobileSheet()"></div>
+  <div id="mobileSheetPanel">
+    <div class="sheet-body">
+
+      <div class="sheet-ctrl">
+        <span class="sheet-ctrl-label">Font Size</span>
+        <input type="range" id="mob-fontSize" min="24" max="120" value="48">
+        <span class="sheet-ctrl-value" id="mob-fontSizeVal">48px</span>
+      </div>
+
+      <div class="sheet-ctrl">
+        <span class="sheet-ctrl-label">Line Height</span>
+        <input type="range" id="mob-lineHeight" min="10" max="25" value="15">
+        <span class="sheet-ctrl-value" id="mob-lineHeightVal">1.5×</span>
+      </div>
+
+      <div class="sheet-ctrl">
+        <span class="sheet-ctrl-label">Speed</span>
+        <input type="range" id="mob-scrollSpeed" min="1" max="10" value="3">
+        <span class="sheet-ctrl-value" id="mob-speedVal">3</span>
+      </div>
+
+      <div class="sheet-ctrl">
+        <span class="sheet-ctrl-label">Padding</span>
+        <input type="range" id="mob-margin" min="0" max="200" value="60">
+        <span class="sheet-ctrl-value" id="mob-marginVal">60px</span>
+      </div>
+
+      <div class="sheet-toggle-row">
+        <button class="toggle-btn" id="mob-btnFlipH" onclick="toggleFlip('H')">↔ H-Flip</button>
+        <button class="toggle-btn" id="mob-btnFlipV" onclick="toggleFlip('V')">↕ V-Flip</button>
+        <button class="toggle-btn" id="mob-btnFocusLine" onclick="toggleFocusLine()">— Focus</button>
+        <button class="toggle-btn active" id="mob-colorWhite" onclick="setTextColor('white', this, true)">White</button>
+        <button class="toggle-btn" id="mob-colorYellow" onclick="setTextColor('#e8ff47', this, true)">Yellow</button>
+        <button class="toggle-btn" id="mob-colorGreen" onclick="setTextColor('#4dff91', this, true)">Green</button>
+      </div>
+
+      <div class="sheet-action-row">
+        <button class="sheet-btn-secondary" onclick="shareScript(); closeMobileSheet();">↗ Share</button>
+        <button class="sheet-btn-secondary" onclick="clearScript(); closeMobileSheet();">✕ Clear</button>
+      </div>
+
+    </div>
+  </div>
 </div>
 
 <!-- SIDEBAR (settings only) -->
@@ -887,23 +1160,33 @@ Bold, italic, and line breaks are preserved."></div>
     if (axis === 'H') {
       flipH = !flipH;
       document.getElementById('btnFlipH').classList.toggle('active', flipH);
+      document.getElementById('mob-btnFlipH').classList.toggle('active', flipH);
     } else {
       flipV = !flipV;
       document.getElementById('btnFlipV').classList.toggle('active', flipV);
+      document.getElementById('mob-btnFlipV').classList.toggle('active', flipV);
     }
     applyTransform();
+    if (isPlaying) showTopBar();
   }
 
   function toggleFocusLine() {
     focusLineOn = !focusLineOn;
     document.getElementById('btnFocusLine').classList.toggle('active', focusLineOn);
+    document.getElementById('mob-btnFocusLine').classList.toggle('active', focusLineOn);
     focusLine.style.display = focusLineOn && isPlaying ? 'block' : 'none';
+    if (isPlaying) showTopBar();
   }
 
-  function setTextColor(color, btn) {
+  function setTextColor(color, btn, fromMobile) {
     textColor = color;
-    document.querySelectorAll('.toggle-btn[id^="color"]').forEach(b => b.classList.remove('active'));
+    // Deactivate all color buttons (both desktop and mobile)
+    document.querySelectorAll('.toggle-btn[id^="color"], .toggle-btn[id^="mob-color"]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    // Mirror to the counterpart panel
+    const mirrorId = fromMobile ? btn.id.replace('mob-', '') : 'mob-' + btn.id;
+    const mirror = document.getElementById(mirrorId);
+    if (mirror) mirror.classList.add('active');
     if (isPlaying) promptText.style.color = color;
   }
 
@@ -947,6 +1230,10 @@ Bold, italic, and line breaks are preserved."></div>
     sidebarVisible = false;
     sidebarToggle.textContent = '›';
     sidebarToggle.classList.add('sidebar-hidden');
+    closeMobileSheet();
+    updateMobilePlayBtn();
+    // Fade top bar after 3s
+    fadeTimer = setTimeout(() => document.getElementById('mobileTopBar').classList.add('faded'), 3000);
 
     if (focusLineOn) focusLine.style.display = 'block';
     scroll();
@@ -995,11 +1282,14 @@ Bold, italic, and line breaks are preserved."></div>
     scriptEditor.classList.remove('hidden');
     editToolbar.classList.remove('hidden');
 
-    // Show sidebar again
+    // Show sidebar / mobile top bar again
     sidebar.classList.remove('hidden');
     sidebarVisible = true;
     sidebarToggle.textContent = '‹';
     sidebarToggle.classList.remove('sidebar-hidden');
+    clearTimeout(fadeTimer);
+    document.getElementById('mobileTopBar').classList.remove('faded');
+    updateMobilePlayBtn();
   }
 
   function adjustSpeed(delta) {
@@ -1018,6 +1308,107 @@ Bold, italic, and line breaks are preserved."></div>
     sidebarToggle.textContent = sidebarVisible ? '‹' : '›';
     sidebarToggle.classList.toggle('sidebar-hidden', !sidebarVisible);
   }
+
+  // ── Mobile play/stop ──
+  function mobilePlayStop() {
+    if (isPlaying) {
+      stopPrompter();
+    } else {
+      startPrompter();
+    }
+  }
+
+  function updateMobilePlayBtn() {
+    const btn = document.getElementById('btnMobilePlay');
+    if (!btn) return;
+    if (isPlaying) {
+      btn.textContent = '■';
+      btn.classList.add('stop');
+    } else {
+      btn.textContent = '▶';
+      btn.classList.remove('stop');
+    }
+  }
+
+  // ── Mobile top bar fade during playback ──
+  let fadeTimer = null;
+
+  function showTopBar() {
+    const bar = document.getElementById('mobileTopBar');
+    if (!bar) return;
+    bar.classList.remove('faded');
+    clearTimeout(fadeTimer);
+    if (isPlaying) {
+      fadeTimer = setTimeout(() => bar.classList.add('faded'), 3000);
+    }
+  }
+
+  // ── Mobile sheet ──
+  function toggleMobileSheet() {
+    const sheet = document.getElementById('mobileSheet');
+    const chevron = document.getElementById('btnMobileChevron');
+    if (sheet.classList.contains('open')) {
+      closeMobileSheet();
+    } else {
+      sheet.classList.add('open');
+      if (chevron) chevron.classList.add('open');
+    }
+  }
+
+  function closeMobileSheet() {
+    document.getElementById('mobileSheet').classList.remove('open');
+    const chevron = document.getElementById('btnMobileChevron');
+    if (chevron) chevron.classList.remove('open');
+  }
+
+  // Sync a mobile slider to its desktop counterpart and vice-versa
+  function syncSliders(mobId, deskId, onInput) {
+    const mob = document.getElementById(mobId);
+    const desk = document.getElementById(deskId);
+    mob.addEventListener('input', e => { desk.value = e.target.value; onInput(e); });
+    desk.addEventListener('input', e => { mob.value = e.target.value; });
+    // init mob from desk value
+    mob.value = desk.value;
+  }
+
+  syncSliders('mob-fontSize', 'fontSize', e => {
+    document.getElementById('mob-fontSizeVal').textContent = e.target.value + 'px';
+    document.getElementById('fontSizeVal').textContent = e.target.value + 'px';
+    updateEditorStyle();
+    if (isPlaying) updatePromptStyle();
+  });
+
+  syncSliders('mob-lineHeight', 'lineHeight', e => {
+    const v = (e.target.value / 10).toFixed(1);
+    document.getElementById('mob-lineHeightVal').textContent = v + '×';
+    document.getElementById('lineHeightVal').textContent = v + '×';
+    updateEditorStyle();
+    if (isPlaying) updatePromptStyle();
+  });
+
+  syncSliders('mob-scrollSpeed', 'scrollSpeed', e => {
+    currentSpeed = sliderToSpeed(e.target.value);
+    const label = currentSpeed % 1 === 0 ? currentSpeed : currentSpeed.toFixed(1);
+    document.getElementById('mob-speedVal').textContent = label;
+    document.getElementById('speedVal').textContent = label;
+    fcSpeedLabel.textContent = label;
+  });
+
+  syncSliders('mob-margin', 'margin', e => {
+    document.getElementById('mob-marginVal').textContent = e.target.value + 'px';
+    document.getElementById('marginVal').textContent = e.target.value + 'px';
+    updateEditorStyle();
+    if (isPlaying) updatePromptStyle();
+  });
+
+  // Also init mob value labels from desktop defaults
+  document.getElementById('mob-fontSizeVal').textContent = document.getElementById('fontSize').value + 'px';
+  document.getElementById('mob-lineHeightVal').textContent = (document.getElementById('lineHeight').value / 10).toFixed(1) + '×';
+  (() => {
+    const spd = sliderToSpeed(document.getElementById('scrollSpeed').value);
+    document.getElementById('mob-speedVal').textContent = spd % 1 === 0 ? spd : spd.toFixed(1);
+  })();
+  document.getElementById('mob-marginVal').textContent = document.getElementById('margin').value + 'px';
 
   // ── Share via Firebase ──
   async function shareScript() {
@@ -1171,7 +1562,22 @@ Bold, italic, and line breaks are preserved."></div>
       if (btnId) setTextColor(s.textColor, document.getElementById(btnId));
     }
     updateEditorStyle();
+    // Sync mobile slider display values
+    document.getElementById('mob-fontSize').value = document.getElementById('fontSize').value;
+    document.getElementById('mob-fontSizeVal').textContent = document.getElementById('fontSize').value + 'px';
+    document.getElementById('mob-lineHeight').value = document.getElementById('lineHeight').value;
+    document.getElementById('mob-lineHeightVal').textContent = (document.getElementById('lineHeight').value / 10).toFixed(1) + '×';
+    document.getElementById('mob-scrollSpeed').value = document.getElementById('scrollSpeed').value;
+    const mobSpd = sliderToSpeed(document.getElementById('scrollSpeed').value);
+    document.getElementById('mob-speedVal').textContent = mobSpd % 1 === 0 ? mobSpd : mobSpd.toFixed(1);
+    document.getElementById('mob-margin').value = document.getElementById('margin').value;
+    document.getElementById('mob-marginVal').textContent = document.getElementById('margin').value + 'px';
   }
+
+  // Tap anywhere on stage during playback to show top bar briefly
+  document.getElementById('stage').addEventListener('click', () => {
+    if (isPlaying) showTopBar();
+  });
 
   // ── Keyboard shortcuts ──
   document.addEventListener('keydown', e => {
@@ -1287,8 +1693,15 @@ Bold, italic, and line breaks are preserved."></div>
 
   async function checkPin() {
     const val = document.getElementById('pinInput').value.trim();
-    const hash = await sha256(val);
-    if (hash === PIN_HASH) {
+    let correct = false;
+    if (crypto.subtle) {
+      const hash = await sha256(val);
+      correct = hash === PIN_HASH;
+    } else {
+      // crypto.subtle unavailable over plain HTTP (e.g. local IP testing) — fall back to direct compare
+      correct = val === '554433';
+    }
+    if (correct) {
       localStorage.setItem('prompter_auth', '1');
       document.getElementById('pinOverlay').style.display = 'none';
     } else {
